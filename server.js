@@ -77,7 +77,7 @@ app.get('/code', async (req, res) => {
             auth: state,
             printQRInTerminal: false,
             logger: pino({ level: 'silent' }),
-            browser: Browsers.ubuntu('Chrome'),
+            browser: Browsers.macOs('Safari')
             generateHighQualityLinkPreview: false,
             connectTimeoutMs: 60000,
             defaultQueryTimeoutMs: 60000,
