@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IANENIGMA MD BOT - Pair Your WhatsApp</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050508;
+    --panel: #0a0a12;
+    --border: #1a1a2e;
+    --accent: #f5c518;
+    --green: #00ff88;
+    --text: #c8c8d8;
+    --dim: #555570;
+    --red: #ff4444;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  body::before {
+    content:'';
+    position:fixed;
+    inset:0;
+    background-image:
+      linear-gradient(rgba(245,197,24,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245,197,24,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events:none;
+    z-index:0;
+  }
+  .container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 480px;
+  }
+  .header { text-align: center; margin-bottom: 32px; }
+  .bat { font-size: 3.5rem; display:block; margin-bottom: 12px;
+    animation: pulse 2s ease-in-out infinite;
+    filter: drop-shadow(0 0 20px rgba(245,197,24,0.6));
+  }
+  @keyframes pulse {
+    0%,100%{ filter: drop-shadow(0 0 20px rgba(245,197,24,0.6)); }
+    50%{ filter: drop-shadow(0 0 40px rgba(245,197,24,0.9)); }
+  }
+  .title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.2rem, 5vw, 1.8rem);
+    font-weight: 900;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-shadow: 0 0 30px rgba(245,197,24,0.5);
+  }
+  .subtitle { font-size: 0.7rem; color: var(--dim); letter-spacing: 2px; margin-top: 6px; }
+  .badge {
+    display: inline-block;
+    background: rgba(245,197,24,0.1);
+    border: 1px solid rgba(245,197,24,0.3);
+    color: var(--accent);
+    font-size: 0.65rem;
+    padding: 3px 12px;
+    border-radius: 20px;
+    margin-top: 8px;
+    letter-spacing: 2px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 0 40px rgba(245,197,24,0.05);
+  }
+  .step-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    color: var(--accent);
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .step-title::after { content:''; flex:1; height:1px; background: var(--border); }
+  .input-group { margin-bottom: 16px; }
+  .input-label { font-size: 0.7rem; color: var(--dim); margin-bottom: 6px; display: block; }
+  .input-row { display: flex; gap: 8px; }
+  .phone-input {
+    flex: 1;
+    background: #0d0d18;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: #fff;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .phone-input:focus { border-color: rgba(245,197,24,0.5); }
+  .phone-input::placeholder { color: var(--dim); }
+  .pair-btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
+  }
+  .pair-btn:hover { transform: scale(1.03); box-shadow: 0 0 20px rgba(245,197,24,0.4); }
+  .pair-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .status {
+    display: none;
+    text-align: center;
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 16px;
+  }
+  .status.loading { display: block; background: rgba(245,197,24,0.05); border: 1px solid rgba(245,197,24,0.2); }
+  .status.success { display: block; background: rgba(0,255,136,0.05); border: 1px solid rgba(0,255,136,0.2); }
+  .status.error   { display: block; background: rgba(255,68,68,0.05); border: 1px solid rgba(255,68,68,0.2); }
+  .loading-dots span {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin: 0 3px;
+    animation: bounce 1.2s infinite;
+  }
+  .loading-dots span:nth-child(2){ animation-delay:.2s }
+  .loading-dots span:nth-child(3){ animation-delay:.4s }
+  @keyframes bounce {
+    0%,60%,100%{ transform:translateY(0) }
+    30%{ transform:translateY(-8px) }
+  }
+  .loading-text { font-size: 0.75rem; color: var(--accent); margin-top: 10px; }
+  .code-box {
+    background: #0d0d18;
+    border: 2px solid var(--green);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(0,255,136,0.15);
+    margin-bottom: 12px;
+  }
+  .code-label { font-size: 0.65rem; color: var(--dim); letter-spacing: 2px; margin-bottom: 8px; }
+  .code-value {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.5rem, 8vw, 2.2rem);
+    font-weight: 900;
+    color: var(--green);
+    letter-spacing: 6px;
+    text-shadow: 0 0 20px rgba(0,255,136,0.5);
+  }
+  .code-timer { font-size: 0.65rem; color: var(--dim); margin-top: 8px; }
+  .btn-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .copy-btn {
+    background: rgba(0,255,136,0.1);
+    border: 1px solid rgba(0,255,136,0.3);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    padding: 8px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 8px;
+  }
+  .copy-btn:hover { background: rgba(0,255,136,0.2); }
+  .session-btn {
+    background: rgba(245,197,24,0.1);
+    border: 1px solid rgba(245,197,24,0.3);
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    padding: 8px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 8px;
+  }
+  .session-btn:hover { background: rgba(245,197,24,0.2); }
+  .session-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .session-box {
+    display: none;
+    background: #0d0d18;
+    border: 1px solid rgba(245,197,24,0.3);
+    border-radius: 10px;
+    padding: 14px;
+    margin-top: 12px;
+    text-align: left;
+  }
+  .session-label { font-size: 0.6rem; color: var(--dim); letter-spacing: 2px; margin-bottom: 8px; }
+  .session-value {
+    font-size: 0.65rem;
+    color: var(--accent);
+    word-break: break-all;
+    line-height: 1.6;
+    background: rgba(245,197,24,0.05);
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px dashed rgba(245,197,24,0.2);
+    user-select: all;
+  }
+  .session-hint { font-size: 0.6rem; color: var(--dim); margin-top: 8px; }
+  .error-text { font-size: 0.8rem; color: var(--red); }
+  .instructions {
+    margin-top: 20px;
+    background: rgba(245,197,24,0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .inst-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    color: var(--accent);
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+  .inst-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 0.72rem;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .inst-num {
+    background: rgba(245,197,24,0.15);
+    color: var(--accent);
+    border-radius: 50%;
+    width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem;
+    font-weight: bold;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .footer {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 0.62rem;
+    color: var(--dim);
+    letter-spacing: 1px;
+  }
+  .footer span { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <span class="bat">🦇</span>
+    <div class="title">IANENIGMA MD</div>
+    <div class="subtitle">WHATSAPP BOT PAIRING SYSTEM</div>
+    <div class="badge">IAN ENIGMA EMPIRE · UGANDA</div>
+  </div>
+
+  <div class="card">
+    <div class="step-title">▶ ENTER YOUR NUMBER</div>
+
+    <div class="input-group">
+      <label class="input-label">WhatsApp Number (with country code, no + or spaces)</label>
+      <div class="input-row">
+        <input
+          class="phone-input"
+          id="phoneInput"
+          type="tel"
+          placeholder="e.g. 256700000000"
+          maxlength="15"
+          onkeydown="if(event.key==='Enter') getPairCode()"
+        >
+        <button class="pair-btn" id="pairBtn" onclick="getPairCode()">GET CODE</button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="status loading" id="loadingStatus">
+      <div class="loading-dots">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="loading-text" id="loadingText">Connecting to Gotham... generating your code</div>
+    </div>
+
+    <!-- Success -->
+    <div class="status success" id="successStatus">
+      <div class="code-box">
+        <div class="code-label">YOUR PAIRING CODE</div>
+        <div class="code-value" id="codeValue">----</div>
+        <div class="code-timer" id="codeTimer">⏱ Expires in 5:00</div>
+      </div>
+      <div class="btn-row">
+        <button class="copy-btn" onclick="copyCode()">📋 Copy Code</button>
+        <button class="session-btn" id="sessionBtn" onclick="getSessionId()">🔑 Get SESSION_ID</button>
+      </div>
+      <!-- Session ID box (shows after pairing is confirmed) -->
+      <div class="session-box" id="sessionBox">
+        <div class="session-label">SESSION_ID — PASTE THIS IN YOUR DEPLOYMENT</div>
+        <div class="session-value" id="sessionValue" onclick="copySession(this)" title="Click to copy">Loading...</div>
+        <div class="session-hint">⚠️ Keep this private. Click to copy. Paste as SESSION_ID environment variable.</div>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div class="status error" id="errorStatus">
+      <div class="error-text" id="errorText">Something went wrong. Try again.</div>
+    </div>
+
+    <div class="instructions">
+      <div class="inst-title">📱 HOW TO PAIR</div>
+      <div class="inst-step">
+        <div class="inst-num">1</div>
+        <div>Enter your WhatsApp number above with country code (no + or spaces)</div>
+      </div>
+      <div class="inst-step">
+        <div class="inst-num">2</div>
+        <div>Click <b>GET CODE</b> and wait up to 30 seconds for your pairing code</div>
+      </div>
+      <div class="inst-step">
+        <div class="inst-num">3</div>
+        <div>Open WhatsApp → <b>Settings → Linked Devices → Link a Device</b></div>
+      </div>
+      <div class="inst-step">
+        <div class="inst-num">4</div>
+        <div>Tap <b>"Link with phone number instead"</b> and enter the 8-digit code</div>
+      </div>
+      <div class="inst-step">
+        <div class="inst-num">5</div>
+        <div>After linking, click <b>Get SESSION_ID</b> and copy it to your bot deployment</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    🦇 <span>IANENIGMA MD BOT</span> · IAN ENIGMA EMPIRE · UGANDA<br>
+    <span style="margin-top:4px;display:block"><i>"I am vengeance. I am the night."</i></span>
+  </div>
+
+</div>
+
+<script>
+  let timerInterval = null
+  let currentCode = ''
+  let currentNumber = ''
+
+  function showStatus(type) {
+    ['loading','success','error'].forEach(t => {
+      const el = document.getElementById(t + 'Status')
+      el.style.display = 'none'
+      el.className = 'status ' + t
+    })
+    if (type) {
+      document.getElementById(type + 'Status').style.display = 'block'
+    }
+  }
+
+  // FIX #3: Timer now counts from 300 seconds (5 minutes) — actual WhatsApp code validity
+  function startTimer(seconds) {
+    clearInterval(timerInterval)
+    let remaining = seconds
+    const timerEl = document.getElementById('codeTimer')
+    timerEl.style.color = ''
+
+    function formatTime(s) {
+      const m = Math.floor(s / 60)
+      const sec = s % 60
+      return `${m}:${sec.toString().padStart(2, '0')}`
+    }
+
+    timerEl.textContent = `⏱ Expires in ${formatTime(remaining)}`
+
+    timerInterval = setInterval(() => {
+      remaining--
+      if (remaining <= 0) {
+        clearInterval(timerInterval)
+        timerEl.textContent = '❌ Code expired — click GET CODE to request a new one'
+        timerEl.style.color = '#ff4444'
+      } else {
+        timerEl.textContent = `⏱ Expires in ${formatTime(remaining)}`
+        if (remaining <= 60) timerEl.style.color = '#ff8844'
+      }
+    }, 1000)
+  }
+
+  async function getPairCode() {
+    const input = document.getElementById('phoneInput')
+    const btn = document.getElementById('pairBtn')
+    const number = input.value.replace(/[^0-9]/g, '').trim()
+
+    if (!number || number.length < 7) {
+      showStatus('error')
+      document.getElementById('errorText').textContent = '❌ Please enter a valid number with country code (e.g. 256700000000)'
+      return
+    }
+
+    currentNumber = number
+    btn.disabled = true
+    document.getElementById('loadingText').textContent = 'Connecting to WhatsApp... please wait up to 30 seconds'
+    showStatus('loading')
+
+    // Hide session box from previous attempt
+    document.getElementById('sessionBox').style.display = 'none'
+    const sessionBtn = document.getElementById('sessionBtn')
+    sessionBtn.disabled = false
+    sessionBtn.textContent = '🔑 Get SESSION_ID'
+
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 40000)
+
+      // FIX #4: Use relative URL so it works on any domain (Render, custom, etc.)
+      const response = await fetch(`/code?number=${encodeURIComponent(number)}`, { signal: controller.signal })
+      clearTimeout(timeoutId)
+
+      const data = await response.json()
+
+      if (data.success && data.code) {
+        currentCode = data.code
+        document.getElementById('codeValue').textContent = data.code
+        document.getElementById('codeTimer').style.color = ''
+        showStatus('success')
+        startTimer(300)  // FIX #3: 5 minutes = 300 seconds (real WhatsApp timeout)
+      } else {
+        showStatus('error')
+        document.getElementById('errorText').textContent = '❌ ' + (data.error || 'Failed to generate code. Try again.')
+      }
+    } catch (err) {
+      showStatus('error')
+      if (err.name === 'AbortError') {
+        document.getElementById('errorText').textContent = '❌ Request timed out. The server may be waking up — try again in 30 seconds.'
+      } else {
+        document.getElementById('errorText').textContent = '❌ Server error. Please try again in a moment.'
+      }
+    } finally {
+      btn.disabled = false
+    }
+  }
+
+  function copyCode() {
+    if (!currentCode) return
+    const clean = currentCode.replace(/-/g, '')
+    navigator.clipboard.writeText(clean).then(() => {
+      const btn = document.querySelector('.copy-btn')
+      btn.textContent = '✅ Copied!'
+      setTimeout(() => btn.textContent = '📋 Copy Code', 2000)
+    }).catch(() => {
+      const el = document.createElement('textarea')
+      el.value = clean
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+      const btn = document.querySelector('.copy-btn')
+      btn.textContent = '✅ Copied!'
+      setTimeout(() => btn.textContent = '📋 Copy Code', 2000)
+    })
+  }
+
+  async function getSessionId() {
+    if (!currentNumber) return
+    const box = document.getElementById('sessionBox')
+    const val = document.getElementById('sessionValue')
+    const sessionBtn = document.getElementById('sessionBtn')
+
+    box.style.display = 'block'
+    val.textContent = 'Waiting for WhatsApp to confirm pairing... (enter the code on your phone if you haven\'t)'
+    sessionBtn.disabled = true
+    sessionBtn.textContent = '⏳ Waiting...'
+
+    try {
+      // FIX #4: relative URL for portability
+      const res = await fetch(`/session?number=${encodeURIComponent(currentNumber)}`)
+      const data = await res.json()
+
+      if (data.success && data.sessionId) {
+        val.textContent = data.sessionId
+        sessionBtn.textContent = '✅ Got SESSION_ID'
+      } else {
+        val.textContent = '⚠️ ' + (data.error || 'Session not ready. Make sure you entered the code in WhatsApp, then click again.')
+        sessionBtn.disabled = false
+        sessionBtn.textContent = '🔑 Try Again'
+      }
+    } catch (e) {
+      val.textContent = '❌ Error fetching session. Make sure you completed the pairing step in WhatsApp.'
+      sessionBtn.disabled = false
+      sessionBtn.textContent = '🔑 Try Again'
+    }
+  }
+
+  function copySession(el) {
+    const text = el.textContent
+    if (!text || text.startsWith('⚠️') || text.startsWith('❌') || text.includes('Waiting') || text.includes('Fetching')) return
+    navigator.clipboard.writeText(text).then(() => {
+      const orig = el.style.background
+      el.style.background = 'rgba(0,255,136,0.15)'
+      el.style.borderColor = 'rgba(0,255,136,0.5)'
+      setTimeout(() => {
+        el.style.background = orig
+        el.style.borderColor = ''
+      }, 1500)
+    })
+  }
+</script>
+</body>
+  </html>
